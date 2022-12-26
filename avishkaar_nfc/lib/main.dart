@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
@@ -59,7 +61,6 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 ElevatedButton(onPressed: (){
                   _showList=_showList?false:true;
-                  list.add('hello');
                   setState(() {
 
                   });
@@ -91,8 +92,8 @@ class _MyHomePageState extends State<MyHomePage> {
     if(isAvailable) {
       NfcManager.instance.startSession(
         onDiscovered: (NfcTag tag) async {
-          _currentTag=tag.data.values.first.toString();
-          list.add(tag.data.values.first.toString());
+        _currentTag=utf8.decode(tag.data['ndef']['cachedMessage']['records'][0]['payload']).toString().split('en')[1];
+        list.add(_currentTag);
           setState(() {
 
           });
