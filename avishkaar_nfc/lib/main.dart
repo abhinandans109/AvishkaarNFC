@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_unity_widget/flutter_unity_widget.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -37,16 +39,23 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   static final GlobalKey<ScaffoldState> _scaffoldKey =
   GlobalKey<ScaffoldState>();
-
+  FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   late UnityWidgetController _unityWidgetController;
   double _sliderValue = 0.0;
   String _currentTag='0';
   String _sequence='';
   var _sequenceList=[];
 
+  List<BluetoothService>? _services;
+
+  String? nfcData;
+
+  BluetoothDevice? _connectedDevice;
+
   @override
   void initState() {
     _init();
+    // Start scannin
     super.initState();
   }
 
@@ -254,23 +263,91 @@ class _MyHomePageState extends State<MyHomePage> {
                             }
                           }, child: Text('Play',style: TextStyle(fontWeight: FontWeight.w500,fontSize: 16),)),
                     ),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 150,
+                          child: ElevatedButton(
+                              style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
+                              onPressed: (){
+                               _sequenceList=[];
+                               _sequence='';
+                               _unityWidgetController.postMessage(
+                                 'FlutterManager',
+                                 'clearObject',
+                                 'clear',
+                               );
+                               _sliderValue=0.0;
+                               setState(() {
+
+                               });
+                              }, child: Text('Clear',style: TextStyle(fontWeight: FontWeight.w500,fontSize: 16),)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
                     SizedBox(
                       width: 150,
                       child: ElevatedButton(
                           style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
                           onPressed: (){
-                           _sequenceList=[];
-                           _sequence='';
-                           _unityWidgetController.postMessage(
-                             'FlutterManager',
-                             'clearObject',
-                             'clear',
-                           );
-                           _sliderValue=0.0;
-                           setState(() {
+                            flutterBlue.startScan(timeout: Duration(seconds: 30));
+                            flutterBlue.scanResults.listen((results) async {
+                              // do something with scan results
+                              for (ScanResult r in results) {
+                                if(r.device.name=='AVX_NFC' && _connectedDevice==null){
+                                  _connectedDevice=r.device;
+                                 await r.device.connect();
+                                  _services = await r.device.discoverServices();
+                                  var toSubtract=0;
+                                  if(Platform.isIOS)toSubtract=2;
+                                  _services![2-toSubtract].characteristics[0].setNotifyValue(true);
+                                  _services![2-toSubtract].characteristics[0].value.listen((event) {
+                                    nfcData=utf8.decode(event);
+                                    _sequenceList.add(nfcData);
+                                    if (nfcData == '0') {
+                                      _sequence+='Delay 2,';
+                                    }
+                                    else if (nfcData == '1') {
+                                      _sequence+='Blue,';
+                                    } else if (nfcData == '2') {
+                                      _sequence+='Red,';
+                                    } else if (nfcData == '3') {
+                                      _sequence+='Yellow,';
+                                    } else if (nfcData == '4') {
+                                      _sequence+='Green,';
+                                    } else if (nfcData == '5') {
+                                      _sequence+='Rotation 0%,';
+                                    } else if (nfcData == '6') {
+                                      _sequence+='Rotation 50%,';
+                                    } else if (nfcData == '7') {
+                                      _sequence+='Rotation 100%,';
+                                    }else if(nfcData=='8') _sequence+='Cube,';
+                                    else if(nfcData=='9') _sequence+='Cylinder,';
+                                    else if(nfcData=='10') _sequence+='Capsule,';
+                                    setState(() {
 
-                           });
-                          }, child: Text('Clear',style: TextStyle(fontWeight: FontWeight.w500,fontSize: 16),)),
+                                    });
+
+                                  });
+
+                                }
+                              }
+                            });
+                          }, child: Text('Connect BLE',style: TextStyle(fontWeight: FontWeight.w500,fontSize: 16),)),
+                    ),
+                    SizedBox(
+                      width: 150,
+                      child: ElevatedButton(
+                          style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
+                          onPressed: () async {
+                           await _connectedDevice!.disconnect();
+                           _connectedDevice=null;
+                          }, child: Text('Disconnect BLE',style: TextStyle(fontWeight: FontWeight.w500,fontSize: 16),)),
                     ),
                   ],
                 ),
