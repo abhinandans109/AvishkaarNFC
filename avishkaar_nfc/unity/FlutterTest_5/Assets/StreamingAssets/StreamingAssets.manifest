@@ -1,0 +1,10 @@
+ManifestFileVersion: 0
+CRC: 1910691708
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: game1
+      Dependencies: {}
+    Info_1:
+      Name: materials
+      Dependencies: {}

@@ -40,6 +40,11 @@ dependencies:
   flutter_unity_widget: ^2022.2.0
   pointer_interceptor: ^0.9.3+2
   flutter_blue_plus: ^1.4.0
+  android_path_provider: ^0.3.0
+  flutter_downloader: ^1.10.1+2
+  path_provider: ^2.0.11
+  flowder: ^0.2.0
+  dio: ^4.0.6
   permission_handler: ^10.2.0
 
 dev_dependencies:

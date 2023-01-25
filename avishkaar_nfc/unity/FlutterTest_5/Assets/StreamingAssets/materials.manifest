@@ -1,0 +1,22 @@
+ManifestFileVersion: 0
+CRC: 1915948898
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 1ef1f3d86b20ff489a29d080419cd623
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: f4a96442316d733ca4d17d3ea2338ef0
+HashAppended: 0
+ClassTypes:
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/BundledAssets/Materials/Yellow.mat
+- Assets/BundledAssets/Materials/Red.mat
+- Assets/BundledAssets/Materials/Blue.mat
+- Assets/BundledAssets/Materials/Green.mat
+Dependencies: []
