@@ -112,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     await FlutterDownloader.registerCallback(downloadCallback);
     print('hello in ii=nit');
-    if(await Permission.camera.isGranted) {
+    if(await Permission.camera.isGranted || Platform.isIOS) {
       bool isAvailable = await NfcManager.instance.isAvailable();
       if (isAvailable) {
         NfcManager.instance.startSession(
