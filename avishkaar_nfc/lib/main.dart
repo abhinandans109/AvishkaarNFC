@@ -18,12 +18,12 @@ import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
   // Plugin must be initialized before using
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
   ));
+  WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize(
       debug: true, // optional: set to false to disable printing logs to console (default: true)
       ignoreSsl: true // option: set to false to disable working with http links (default: false)
@@ -72,23 +72,27 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    _init();
-
+    if(Platform.isAndroid) {
+      _init();
+    }
     _setPath();
     // _downloadFile();
     // Start scannin
     super.initState();
   }
   void _setPath() async {
-    Directory _path = await getApplicationDocumentsDirectory();
-    String _localPath = _path.path + Platform.pathSeparator + 'Download';
-    final savedDir = Directory(_localPath);
-    bool hasExisted = await savedDir.exists();
-    if (!hasExisted) {
-      savedDir.create();
-    }
-    var downloadsPath = await AndroidPathProvider.downloadsPath;
-    path =(await _getSavedDir())!;
+    print("**********GET PATH************");
+    // Directory _path = await getApplicationDocumentsDirectory();
+    // String _localPath = _path.path + Platform.pathSeparator + 'Download';
+    // final savedDir = Directory(_localPath);
+    // bool hasExisted = await savedDir.exists();
+    // if (!hasExisted) {
+    //   savedDir.create();
+    // }
+    // var downloadsPath = await AndroidPathProvider.downloadsPath;
+    // path =(await _getSavedDir())!;
+    print("**********GET PATH************ : $path");
+
     _downloadFiles();
   }
   @override
@@ -112,7 +116,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     await FlutterDownloader.registerCallback(downloadCallback);
     print('hello in ii=nit');
-    if(await Permission.camera.isGranted || Platform.isIOS) {
+    if(await Permission.camera.isGranted) {
       bool isAvailable = await NfcManager.instance.isAvailable();
       if (isAvailable) {
         NfcManager.instance.startSession(
@@ -172,8 +176,8 @@ class _MyHomePageState extends State<MyHomePage> {
             Expanded(
               child: UnityWidget(
                 onUnityCreated: _onUnityCreated,
-                onUnityMessage: onUnityMessage,
-                onUnitySceneLoaded: onUnitySceneLoaded,
+                onUnityMessage: _onUnityMessage,
+                onUnitySceneLoaded: _onUnitySceneLoaded,
                 // useAndroidViewSurface: false,
                 // borderRadius: BorderRadius.all(Radius.circular(70)),
               ),
@@ -196,6 +200,48 @@ class _MyHomePageState extends State<MyHomePage> {
                     value: _sliderValue,
                     min: 0.0,
                     max: 1.0,
+                  ),
+                  SizedBox(
+                    width: 200,
+                    child: ElevatedButton(
+                        style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.blue)),
+                        onPressed: (){
+                          if(Platform.isIOS) {
+                            NfcManager.instance.startSession(
+                            alertMessage: _sequence,
+                            onDiscovered: (NfcTag tag) async {
+                              _currentTag = utf8
+                                  .decode(
+                                  tag.data['ndef']['cachedMessage']['records'][0]['payload'])
+                                  .toString()
+                                  .split('en')[1];
+                              _sequenceList.add(_currentTag);
+                              if (_currentTag == '0') {
+                                _sequence+='Delay 2,';
+                              }
+                              else if (_currentTag == '1') {
+                                _sequence+='Blue,';
+                              } else if (_currentTag == '2') {
+                                _sequence+='Red,';
+                              } else if (_currentTag == '3') {
+                                _sequence+='Yellow,';
+                              } else if (_currentTag == '4') {
+                                _sequence+='Green,';
+                              } else if (_currentTag == '5') {
+                                _sequence+='Rotation 0%,';
+                              } else if (_currentTag == '6') {
+                                _sequence+='Rotation 50%,';
+                              } else if (_currentTag == '7') {
+                                _sequence+='Rotation 100%,';
+                              }else if(_currentTag=='8') _sequence+='Cube,';
+                              else if(_currentTag=='9') _sequence+='Cylinder,';
+                              else if(_currentTag=='10') _sequence+='Capsule,';
+                              NfcManager.instance.stopSession();
+                              setState(() {});
+                            },
+                          );
+                          }
+                        }, child: Text('Scan',style: TextStyle(fontWeight: FontWeight.w500,fontSize: 18),)),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -416,11 +462,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void onUnityMessage(message) {
+  void _onUnityMessage(message) {
     print('Received message from unity: ${message.toString()}');
   }
 
-  void onUnitySceneLoaded(SceneLoaded? scene) {
+  void _onUnitySceneLoaded(SceneLoaded? scene) {
 
   }
 
@@ -432,24 +478,37 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _downloadFiles() async {
+    print("********DOWNLOAD FILE*********");
     try {
       var response = await Dio().get('https://assets.avishkaar.cc/nfc-game-assets/AssetBundles/game1',
       options: Options(responseType: ResponseType.bytes)
       );
       if(Platform.isAndroid)
      var f=await File('/storage/emulated/0/Android/data/com.avishkaar.avishkaar_nfc/files/game1').writeAsBytes(response.data);
-      else
-     var f=await File('${(await getApplicationDocumentsDirectory()).absolute.path}${Platform.pathSeparator}game1').writeAsBytes(response.data);
-
+      else {
+        response = await Dio().get('https://avishkaar-assets.s3.ap-south-1.amazonaws.com/nfc-game-assets/AssetBundles/ios/game1',
+            options: Options(responseType: ResponseType.bytes));
+        print("********FOLDER PATH********* ${(await getApplicationDocumentsDirectory()).absolute
+            .path}${Platform.pathSeparator}game1)");
+        var f = await File(
+            '${(await getApplicationDocumentsDirectory()).absolute
+                .path}${Platform.pathSeparator}game1').writeAsBytes(
+            response.data);
+      }
 
       var response2 = await Dio().get('https://assets.avishkaar.cc/nfc-game-assets/AssetBundles/materials',
       options: Options(responseType: ResponseType.bytes)
       );
       if(Platform.isAndroid)
      var k=await File('/storage/emulated/0/Android/data/com.avishkaar.avishkaar_nfc/files/materials').writeAsBytes(response2.data);
-      else
-        var f=await File('${(await getApplicationDocumentsDirectory()).absolute.path}${Platform.pathSeparator}materials').writeAsBytes(response.data);
-
+      else {
+        response2 = await Dio().get('https://avishkaar-assets.s3.ap-south-1.amazonaws.com/nfc-game-assets/AssetBundles/ios/materials',
+            options: Options(responseType: ResponseType.bytes));
+        var k = await File(
+            '${(await getApplicationDocumentsDirectory()).absolute
+                .path}${Platform.pathSeparator}materials').writeAsBytes(
+            response2.data);
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download Completed')));
       _unityWidgetController.postMessage('GameManager', 'Setup', 'start');
 
